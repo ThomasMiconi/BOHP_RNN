@@ -1,12 +1,13 @@
 import numpy as np
 
-np.random.seed(1)
+np.random.seed(0)
 
-NBSTEPS =30 
-NBNEUR = 100
+NBSTEPS = 100
+NBNEUR = 50
 ETA = .90
-EPSILONY = .001
-EPSILONH = .00
+EPSILONW = .001
+EPSILONY = .0
+EPSILONH = .0
 
 
 alpha = np.abs(np.random.rand(NBNEUR, NBNEUR)) *.1
@@ -20,86 +21,76 @@ generaltgt = np.ones(NBNEUR)[:,None]  # Column vector
 
 
 
-#alpha.fill(0)  # For now, no plasticity
+alpha.fill(0)  # For now, no plasticity
 
 
 
-estimgrad11 = 0; estimgrad10 = 0; estimgradx1=0; estimgrady1=0; estimgrady1y0=0
+estimgrad11 = 0; estimgrad10 = 0; estimgradx1=0; estimgrady1=0; estimgrady1y0=0; estimgrady0y0=0
 yinit = np.random.rand(NBNEUR)
 finalerrs = []; finalhebbs = []; finalys = []; finalxs=[]
 wchange = np.random.randn(NBNEUR, NBNEUR) * .0001  
 
+
 for numrun in range(3):
     xs=[]; ys=[]; errs=[]; tgts = []; yprevs = []; weffs=[]
     y = yinit.copy()
-    yprev = np.zeros_like(y)
+    yprev = np.zeros_like(y); yprevprev = np.zeros_like(y)
     weff = w.copy()
     hebb.fill(0)
+    dykdwba = np.zeros((NBNEUR, NBNEUR, NBNEUR))
+
+    w[1,3] += EPSILONW
+
     for numstep in range(NBSTEPS): 
 
-        if numstep == 28:
-            y[0] += numrun * EPSILONY
-
-        hebb = ETA * hebb + (1.0 - ETA) * np.outer(y, yprev) # Note: At this stage, y is really y(t-1) and yprev is really y(t-2)
-        #for nr in range(NBNEUR):
-        #    for nc in range(NBNEUR):
-        #        hh = hebb[nr][nc]
-        #        hebb[nr][nc] = ETA * hh + (1.0-ETA) * yprev[nc] * y[nr]
+        tmpdout = np.tensordot(w, dykdwba, ([1], [0]))  # Somehow this works
+        # Equivalent, slow way of doing the same thing:
+        #for a in range(NBNEUR):
+        #    for b in range(NBNEUR):
+        #        for k in range(NBNEUR):
+        #            for j in range(NBNEUR):
+        #                dout[k, b, a] += w[k, j] * dykdwba[j, b,a]
+        dxkdwba = tmpdout 
+        # Special case when k=b: 
+        for b in range(NBNEUR):
+            for a in range(NBNEUR):
+                dxkdwba[b,b,a] += y[a]
         
-        if numstep == 28:
-            hebb[1,0] += numrun * EPSILONH
-            if numrun == 1:
-                # Estimate the gradient of hebb(1,1)(t+1) over hebb(1,0)(t) (so v,u,b = 1, a=0)
-                estimgradx1 = alpha[1,0] * y[0]  
-        if numstep == 29:
-            finalhebbs.append(hebb.copy())
+        # Now dxkdwba = dx_k(t)/dW_ba
+        # To get dy_k(t)/dW_ba we just need to pass it through the tanh, which
+        # we do after the y(t) are computed, below.
 
-        # The following doesn't work
-        #weff = w + alpha * hebb  # Need to work on this 
-        # On the diagonal:
-        #weff2 = w 
-        #np.fill_diagonal(weff, 0)
-        #weff += np.diag(np.diag(weff2) + alpha.dot ( (1.0-ETA) * yprev * y))
+        
+        hebb = ETA * hebb + (1.0 - ETA) * np.outer(y, yprev) # Note: At this stage, y is really y(t-1) and yprev is really y(t-2)
         weff = w.copy()
 
         x = (w + alpha * hebb).dot(y)
+        yprevprev = yprev.copy()
         yprev = y.copy()
-        y = np.tanh(x)
-        if numstep == 28:
-            finalxs.append(x.copy())
-            finalys.append(y.copy())
-            if numrun == 1:
-                estimgrady1y0 = (w[1,0] + alpha[1,0] * hebb[1,0]) * (1.0-y[1]*y[1])
-                estimgrady1 = estimgradx1 * (1.0 - y[1]*y[1])
-                estimgrad10 = ETA + (1.0 - ETA) * yprev[0] * alpha[1,0] * yprev[0] * (1.0 - y[1] * y[1])
-                estimgrad11 = (1.0 - ETA) * yprev[1] * alpha[1,0] * yprev[0] * (1.0 - y[1] * y[1])
+        y = np.tanh(x)  # Finally computing y(t)
+
+        dykdwba = (dxkdwba.T * (1.0 - y*y)).T  # Broadcasting along the last two dimensions to account for the tanh
+
+        if numrun == 1: #and numstep == 0:
+            pred_dxdwba = dxkdwba.copy()
+        if numrun == 1: #and numstep == 0:
+            pred_dydwba = dykdwba.copy()
+
+
         ys.append(y); tgts.append(generaltgt); yprevs.append(yprev); xs.append(x); weffs.append(weff)
-        #errs.append(err); 
+            
+    finalxs.append(x)
+    finalys.append(y)
+
     finalerr = np.sum( (y - np.ones(NBNEUR)) * (y - np.ones(NBNEUR)) )
     finalerrs.append(finalerr)
     print "Run", numrun, ":", y
 
-    if numrun == 1:
-        derrfinaldys = []
-        derrfinaldyprev = 2* ( y - np.ones(NBNEUR ))
-        for numstep in reversed(range(NBSTEPS)): 
-            derrfinaldyraw = (1-ys[numstep] * ys[numstep]) * derrfinaldyprev
-            derrfinaldyprev = np.dot(weffs[numstep].T, derrfinaldyraw)
-            derrfinaldys.append(derrfinaldyprev)
-        derrfinaldys.reverse()
 
+print "Predicted gradient - x:", pred_dxdwba[:,1,3]
+print "Observed gradient - x:", (finalxs[2]-finalxs[0]) / (1e-12 + 2 * EPSILONW)
+print "Predicted gradient - y:", pred_dydwba[:,1,3]
+print "Observed gradient - y:", (finalys[2]-finalys[0]) / (1e-12 + 2 * EPSILONW)
 #print "Predicted gradient - err:", derrfinaldys[1][0]
 #print "Observed gradient - err:", (finalerrs[2]-finalerrs[0]) / (1e-12 + 2 * EPSILONY)
-
-print "Predicted gradient - x(t) over hebb(t):", estimgradx1
-print "Observed gradient - x(t) over hebb(t):", (finalxs[2][1]-finalxs[0][1]) / (1e-12+2 * EPSILONH)
-print "Predicted gradient - y(t) over hebb(t):", estimgrady1
-print "Observed gradient - y(t) over hebb(t):", (finalys[2][1]-finalys[0][1]) / (1e-12+2 * EPSILONH)
-print "Predicted gradient - hebb (auto t to t+1):", estimgrad10
-print "Observed gradient - hebb (auto t to t+1):", (finalhebbs[2][1,0]-finalhebbs[0][1,0]) / (1e-12+2 * EPSILONH)
-print "Predicted gradient - hebb(1,1,t+1) over hebb(1,0,t):", estimgrad11
-print "Observed gradient - hebb(1,1,t+1) over hebb(1,0,t):", (finalhebbs[2][1,1]-finalhebbs[0][1,1]) / (1e-12+2 * EPSILONH)
-print "Predicted gradient - y1(t+1) over y0(t):", estimgrady1y0
-print "Observed gradient - y1(t+1) over y0(t):", (finalys[2][1]-finalys[0][1]) / (1e-12+2 * EPSILONY)
-
 
