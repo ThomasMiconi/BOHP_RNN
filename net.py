@@ -6,10 +6,8 @@ np.random.seed(0)
 NBSTEPS = 30
 NBNEUR = 20
 ETA = .90
-EPSILONW = .00
-EPSILONALPHA = .001
-EPSILONY = .0
-EPSILONH = .0
+#EPSILONW = .001; EPSILONALPHA = .001
+EPSILON = .001
 
 
 alpha = np.abs(np.random.rand(NBNEUR, NBNEUR)) *.1
@@ -46,11 +44,8 @@ for numrun in range(3):
     dykdalphabaprev = dykdalphaba.copy()
 
     
-    if (EPSILONW * EPSILONALPHA) > 0 or (EPSILONW + EPSILONALPHA) == 0:
-        raise ValueError(" Exactly one of EPSILONW or EPSILONALPHA should be non-zero")
-
-    w += EPSILONW
-    alpha += EPSILONALPHA
+    w += EPSILON
+    alpha += EPSILON
 
     for numstep in range(NBSTEPS): 
 
@@ -134,14 +129,16 @@ for numrun in range(3):
     finalerrs.append(finalerr)
     print "Run", numrun, ":", y
 
-if EPSILONW > 0:
-    print "Predicted gradient - x over w:", np.sum(np.sum(pred_dxdwba, axis=2), axis=1)  # This works if you modify *all* the ws by epsilon
-    print "Observed gradient - x over w:", (finalxs[2]-finalxs[0]) / (1e-12 + 2 * EPSILONW)
-    print "Predicted gradient - x over w:", np.sum(np.sum(pred_dydwba, axis=2), axis=1)
-    print "Observed gradient - y over w:", (finalys[2]-finalys[0]) / (1e-12 + 2 * EPSILONW)
-if EPSILONALPHA > 0:
-    print "Predicted gradient - x over alpha:", np.sum(np.sum(pred_dxdalphaba, axis=2), axis=1)  # This works if you modify *all* the alphas by epsilon
-    print "Observed gradient - x over alpha:", (finalxs[2]-finalxs[0]) / (1e-12 + 2 * EPSILONALPHA)
-    print "Predicted gradient - x over alpha:", np.sum(np.sum(pred_dydalphaba, axis=2), axis=1)
-    print "Observed gradient - y over alpha:", (finalys[2]-finalys[0]) / (1e-12 + 2 * EPSILONALPHA)
+#if EPSILONW > 0:
+#    print "Predicted gradient - x over w:", np.sum(np.sum(pred_dxdwba, axis=2), axis=1)  # This works if you modify *all* the ws by epsilon
+#    print "Observed gradient - x over w:", (finalxs[2]-finalxs[0]) / (1e-12 + 2 * EPSILONW)
+#    print "Predicted gradient - x over w:", np.sum(np.sum(pred_dydwba, axis=2), axis=1)
+#    print "Observed gradient - y over w:", (finalys[2]-finalys[0]) / (1e-12 + 2 * EPSILONW)
+#if EPSILONALPHA > 0:
+#    print "Predicted gradient - x over alpha:", np.sum(np.sum(pred_dxdalphaba, axis=2), axis=1)  # This works if you modify *all* the alphas by epsilon
+#    print "Observed gradient - x over alpha:", (finalxs[2]-finalxs[0]) / (1e-12 + 2 * EPSILONALPHA)
+#    print "Predicted gradient - x over alpha:", np.sum(np.sum(pred_dydalphaba, axis=2), axis=1)
+#    print "Observed gradient - y over alpha:", (finalys[2]-finalys[0]) / (1e-12 + 2 * EPSILONALPHA)
 
+print "Predicted gradient - x over w and alpha:", np.sum(np.sum(pred_dxdwba, axis=2), axis=1) + np.sum(np.sum(pred_dxdalphaba, axis=2), axis=1)   # This works if you modify *all* the ws and alphas by epsilon
+print "Observed gradient - x over w and alpha:", (finalxs[2]-finalxs[0]) / (1e-12 + 2 * EPSILON)
