@@ -2,8 +2,8 @@ import numpy as np
 
 np.random.seed(0)
 
-NBSTEPS = 20 
-NBNEUR = 30
+NBSTEPS = 30
+NBNEUR = 20
 ETA = .90
 EPSILONW = .001
 EPSILONY = .0
@@ -11,7 +11,6 @@ EPSILONH = .0
 
 
 alpha = np.abs(np.random.rand(NBNEUR, NBNEUR)) *.1
-np.fill_diagonal(alpha, 0)  # No platic autapses
 hebb = np.zeros((NBNEUR, NBNEUR))
 w = np.random.randn(NBNEUR, NBNEUR) * 1.1 / np.sqrt(NBNEUR)
 
@@ -21,6 +20,7 @@ generaltgt = np.ones(NBNEUR)[:,None]  # Column vector
 
 
 
+np.fill_diagonal(alpha, 0)  # No platic autapses
 #alpha.fill(0)  # For now, no plasticity
 
 
@@ -73,8 +73,8 @@ for numrun in range(3):
 
         # Now tmpdout = dx_k(t)/dW_ba - neglecting plasticity !
         # Now to add in plasticity effects...
-        tmpdout1 = np.tensordot( (alpha * hebb), dykdwba, ([1], [0]) )  # Sum_j{ alpha_kj hebb_kj dy_j(t-1)/dWba } (very similar to the computation with w above)
-        tmpdout2 = np.tensordot( (alpha * dhkjdwba), y, ([1], [0]) ) # Sum_j{ alpha_kj dhebb_kj(t)/dWba y_j }
+        tmpdout1 = np.tensordot( (alpha * hebb), dykdwba, ([1], [0]) )  # Sum_j{ alpha_kj hebb_kj dy_j(t-1)/dWba } (very similar to the computation of tmpdout with w above)
+        tmpdout2 = np.tensordot( (alpha[:,:, np.newaxis, np.newaxis] * dhkjdwba), y, ([1], [0]) ) # Sum_j{ alpha_kj dhebb_kj(t)/dWba y_j }
 
         
         dxkdwba = tmpdout + tmpdout1 + tmpdout2
@@ -90,13 +90,14 @@ for numrun in range(3):
         dykdwbaprev = dykdwba.copy()
         dykdwba = (dxkdwba.T * (1.0 - y*y)).T  # Broadcasting along the last two dimensions to account for the tanh
 
-        if numrun == 1: #and numstep == 0:
-            pred_dxdwba = dxkdwba.copy()
-        if numrun == 1: #and numstep == 0:
-            pred_dydwba = dykdwba.copy()
 
 
         ys.append(y); tgts.append(generaltgt); yprevs.append(yprev); xs.append(x); 
+
+    if numrun == 1: #and numstep == 0:
+        pred_dxdwba = dxkdwba.copy()
+    if numrun == 1: #and numstep == 0:
+        pred_dydwba = dykdwba.copy()
             
     finalxs.append(x)
     finalys.append(y)
