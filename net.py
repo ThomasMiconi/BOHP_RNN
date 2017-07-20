@@ -3,14 +3,14 @@ import numpy as np
 import rnnbohp
 from rnnbohp import runNetwork
 
-np.random.seed(1)
 
 
 NBSTEPS = 10
-NBNEUR = 25
+NBNEUR = 30
 ETA = .90
 EPSILON = .001
-
+RNGSEED = 1
+np.random.seed(RNGSEED)
 
 alpha = np.abs(np.random.rand(NBNEUR, NBNEUR)) *.01
 w = np.random.randn(NBNEUR, NBNEUR) * 1.1 / np.sqrt(NBNEUR)
@@ -30,15 +30,24 @@ finalys = []
 
 
 np.set_printoptions(precision=3)
+FILENAME = "errs_withoutplast_RNGSEED"+str(RNGSEED)+".txt"
+myfile = open(FILENAME, "w") 
+
+
 
 INPUTSIZE = 6
-INPUTLENGTH = 5
+INPUTLENGTH = 6
 for numstep in range(5000):
     print numstep
     inputs= [np.zeros(INPUTSIZE) for ii in range (NBSTEPS)]
     for ii in range (INPUTLENGTH):
         inputs[ii].fill(-1)
         inputs[ii][np.random.randint(INPUTSIZE)] = 1
+    
+    
+    #alpha.fill(0)
+    
+    
     ys, xs, dydws, dydalphas = runNetwork(w, alpha, ETA, NBSTEPS, inputs=inputs, yinit=yinit)
     errs = [ys[-INPUTLENGTH+n][:INPUTSIZE] - inputs[n] for n in range(INPUTLENGTH)]  # reproduce the input sequences. Inputs are also outputs!
     #errs = [0, 0, 0, -1, 1]
@@ -48,6 +57,10 @@ for numstep in range(5000):
     alpha -= .003 * sum(dalphas)
     print "last INPUTLENGTH ys[:INPUTSIZE]:", [x[:INPUTSIZE] for x in ys[-INPUTLENGTH:]]
     print "Inputs: ", inputs[:INPUTLENGTH]
-    print "Err:" , np.sum(np.abs(errs))
+    totalerr = np.sum(np.abs(errs))
+    print "Err:" , 
+    myfile.write(str(totalerr)+"\n")
+
+myfile.close()
 
 
