@@ -27,6 +27,10 @@ np.random.seed(RNGSEED)
 
 alpha = np.abs(np.random.rand(NBNEUR, NBNEUR)) *.01
 w = np.random.randn(NBNEUR, NBNEUR) * 1.1 / np.sqrt(NBNEUR)
+m1w = np.zeros_like(w)
+m2w = np.zeros_like(w)
+m1alpha = np.zeros_like(alpha)
+m2alpha = np.zeros_like(alpha)
 
 # Not used for now
 generaltgt = np.ones(NBNEUR)[:,None]  # Column vector
@@ -43,7 +47,7 @@ finalys = []
 
 
 np.set_printoptions(precision=3)
-FILENAME = "errs_LEARNINGRATE"+str(LEARNINGRATE)+"PLASTICITY"+str(PLASTICITY)+"_RNGSEED"+str(RNGSEED)+".txt"
+FILENAME = "errs_adam_LEARNINGRATE"+str(LEARNINGRATE)+"PLASTICITY"+str(PLASTICITY)+"_RNGSEED"+str(RNGSEED)+".txt"
 myfile = open(FILENAME, "w") 
 
 
@@ -88,9 +92,23 @@ for numstep in range(3000):
     ys, xs, dydws, dydalphas = runNetwork(w, alpha, ETA, NBSTEPS, inputs=inputs, yinit=yinit)
     errs = [ys[-TESTTIME+n][:PATTERNSIZE] - patterns[numtestpattern] for n in range(TESTTIME)]  # reproduce the full test pattern.
     dws = [np.sum((errs[n] * dydws[-TESTTIME + n][:PATTERNSIZE,:,:].T).T, axis=0) for n in range(TESTTIME)]
-    w -= LEARNINGRATE * sum(dws)
     dalphas = [np.sum((errs[n] * dydalphas[-TESTTIME+ n][:PATTERNSIZE,:,:].T).T, axis=0) for n in range(TESTTIME)]
-    alpha -= LEARNINGRATE * sum(dalphas)
+
+    BETA1 = .9; BETA2 = .999; ALPHA = .001
+    dw = sum(dws)
+    m1w = BETA1 * m1w + (1 - BETA1) * dw
+    m2w = BETA1 * m2w + (1 - BETA2) * dw * dw
+    m1wcorr = m1w / (1.0 - BETA1 ** (numstep+1))
+    m2wcorr = m2w / (1.0 - BETA2 ** (numstep+1))
+    dalpha = sum(dalphas)
+    m1alpha = BETA1 * m1alpha + (1 - BETA1) * dalpha
+    m2alpha = BETA1 * m2alpha + (1 - BETA2) * dalpha * dalpha
+    m1alphacorr = m1alpha / (1 - BETA1 ** (numstep+1))
+    m2alphacorr = m2alpha / (1 - BETA2 ** (numstep+1))
+    
+    w -= ALPHA * m1wcorr / (np.sqrt(m2wcorr) + 1e-8)
+    alpha -= ALPHA * m1alphacorr / (np.sqrt(m2alphacorr) + 1e-8)
+
     print "last PRESTIME ys[:PATTERNSIZE]:", [x[:PATTERNSIZE] for x in ys[-PRESTIME:]]
     print "test pattern:", testpattern
     #print "Inputs: ", inputs[:INPUTLENGTH]
