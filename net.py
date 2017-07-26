@@ -6,7 +6,7 @@ from rnnbohp import runNetwork
 
 
 
-NBNEUR = 25
+NBNEUR = 32  # Note: Apparently, pattern size must be a multiple of 4 for orthogonalizing to work...
 ETA = .96
 EPSILON = .001
 RNGSEED = 0
@@ -17,6 +17,8 @@ numarg = 0
 while numarg < len(arguments):
     if arguments[numarg] == 'PLASTICITY':
         PLASTICITY = int(arguments[numarg+1])
+    if arguments[numarg] == 'ALPHA':
+        ALPHA= float(arguments[numarg+1])
     if arguments[numarg] == 'LEARNINGRATE':
         LEARNINGRATE = float(arguments[numarg+1])
     if arguments[numarg] == 'RNGSEED':
@@ -49,10 +51,10 @@ finalys = []
 
 
 
-PATTERNSIZE = NBNEUR - 5
+PATTERNSIZE = NBNEUR - 4
 NBPRESCYCLES = 3
 PRESTIME = 6
-PRESTIMETEST = 5
+PRESTIMETEST = 4
 INTERPRESDELAY = 4
 TESTTIME = 2
 NBPATTERNS = 3
@@ -67,11 +69,13 @@ ALPHA = .0003
 #ALPHA = .0001
 
 np.set_printoptions(precision=3)
-FILENAME = "errs_multiplepres_orthogpatterns_adam_ALPHA"+str(ALPHA)+"_NBPATTERNS"+str(NBPATTERNS)+"_LEARNINGRATE"+str(LEARNINGRATE)+"_PLASTICITY"+str(PLASTICITY)+"_RNGSEED"+str(RNGSEED)+".txt"
-myfile = open(FILENAME, "w") 
+SUFFIX = "stronginputs_multiplepres_orthogpatterns_adam_NBNEUR"+str(NBNEUR)+"_PATTERNSIZE"+str(PATTERNSIZE)+"__ALPHA"+str(ALPHA)+"_NBPATTERNS"+str(NBPATTERNS)+"_LEARNINGRATE"+str(LEARNINGRATE)+"_PLASTICITY"+str(PLASTICITY)+"_RNGSEED"+str(RNGSEED)
+
+myerrorfile = open("errs_"+SUFFIX+".txt", "w") 
 
 print "Starting - "
 print "Learning rate:", str(LEARNINGRATE), " RNGSEED:", str(RNGSEED), ", PLASTICITY:", str(PLASTICITY)
+listerrs=[]; listtestpatterns=[]; listinputs=[]
 for numstep in range(10000):
     print numstep
     
@@ -81,6 +85,7 @@ for numstep in range(10000):
     #patterns = []; patterns.append(np.random.randint(2, size=PATTERNSIZE) *2 - 1); patterns.append(-patterns[0]) # Two symmetric patterns
     # Orthogonal zero-sum patterns, brute force
     # (Orthogonalizing, by itself, seems to have little impact..)
+    print "Generating patterns.."
     patterns=[]
     for nump in range(NBPATTERNS):
         sumdotsp = -1
@@ -88,19 +93,21 @@ for numstep in range(10000):
             p = np.random.permutation(seedp)
             sumdotsp = sum(np.abs([p.dot(pprevious) for pprevious in patterns]))
         patterns.append(p)
+    print "patterns generated!"
+
 
     # Presentation of the patterns
     inputs = [np.zeros(NBNEUR) for ii in range (NBSTEPS)]
     for ii in range(NBSTEPS):
-        inputs[ii][-1] = 1.0  # bias
-        inputs[ii][-2] = -1.0 # presenting / non-presenting
+        inputs[ii][-1] = 10.0  # bias
+        #inputs[ii][-2] = -1.0 # presenting / non-presenting
     for nc in range(NBPRESCYCLES):
         np.random.shuffle(patterns)
         for ii in range(NBPATTERNS):
             for nn in range(PRESTIME):
                 numi =nc * (NBPATTERNS * (PRESTIME+INTERPRESDELAY)) + ii * (PRESTIME+INTERPRESDELAY) + nn 
                 inputs[numi][:PATTERNSIZE] = patterns[ii][:]
-                inputs[numi][-2] = 1.0  # Presenting!
+                #inputs[numi][-2] = 1.0  # Presenting!
 
 
     # Creating the test, partially zero'ed out pattern
@@ -111,27 +118,27 @@ for numstep in range(10000):
 
     for nn in range(PRESTIMETEST):
         inputs[-PRESTIMETEST + nn][:PATTERNSIZE] = testpattern[:]
-        inputs[-PRESTIMETEST + nn][-2] = 1.0
+        #inputs[-PRESTIMETEST + nn][-2] = 1.0
 
-
-
+    for ii in inputs:
+        ii  *= 20.0
     
     if PLASTICITY == 0:
         alpha.fill(0)
     
     ys, xs, dydws, dydalphas = runNetwork(w, alpha, ETA, NBSTEPS, inputs=inputs, yinit=yinit)
     errs = [ys[-TESTTIME+n][:PATTERNSIZE] - patterns[numtestpattern] for n in range(TESTTIME)]  # reproduce the full test pattern, please
-    dws = [np.sum((errs[n] * dydws[-TESTTIME + n][:PATTERNSIZE,:,:].T).T, axis=0) for n in range(TESTTIME)]
-    dalphas = [np.sum((errs[n] * dydalphas[-TESTTIME+ n][:PATTERNSIZE,:,:].T).T, axis=0) for n in range(TESTTIME)]
+    dws = [np.sum((errs[n] * dydws[-TESTTIME + n][:PATTERNSIZE,:,:].T).T, axis=0)  for n in range(TESTTIME)] 
+    dalphas = [np.sum((errs[n] * dydalphas[-TESTTIME+ n][:PATTERNSIZE,:,:].T).T, axis=0)   for n in range(TESTTIME)]
 
     # Adam solver
     if ADAM:
-        dw = sum(dws)
+        dw = sum(dws) / TESTTIME
         m1w = BETA1 * m1w + (1 - BETA1) * dw
         m2w = BETA1 * m2w + (1 - BETA2) * dw * dw
         m1wcorr = m1w / (1.0 - BETA1 ** (numstep+1))
         m2wcorr = m2w / (1.0 - BETA2 ** (numstep+1))
-        dalpha = sum(dalphas)
+        dalpha = sum(dalphas) / TESTTIME
         m1alpha = BETA1 * m1alpha + (1 - BETA1) * dalpha
         m2alpha = BETA1 * m2alpha + (1 - BETA2) * dalpha * dalpha
         m1alphacorr = m1alpha / (1 - BETA1 ** (numstep+1))
@@ -144,14 +151,21 @@ for numstep in range(10000):
         alpha -= np.clip(LEARNINGRATE * sum(dalphas) / TESTTIME, -3e-4, 3e-4)
         print "Clippable ws:", np.sum(np.abs(LEARNINGRATE * sum(dws) ) / TESTTIME > 3e-4), " out of ", sum(dws).size
 
+    if (numstep+1) % 10 == 0:
+        params = {}
+        params{'w'} = w; params{'alpha'} = alpha; params{'errs'} = listerrs; params{'inputs'} = listinputs; params{'testpatterns'} = listtestpatterns
+        pickle.dump(params, open("results_"+SUFFIX+".pkl", "wb"))
     print "last PRESTIME ys[:PATTERNSIZE]:", [x[:PATTERNSIZE] for x in ys[-PRESTIME:]]
     print "test pattern:", testpattern
     #print "Inputs: ", inputs[:INPUTLENGTH]
     totalerr = np.sum(np.abs(errs))
+    listinputs.append(inputs)
+    listtestpatterns.append(testpattern)
+    listerrs.append(totalerr)
     print "Err:" , totalerr
-    myfile.write(str(totalerr)+"\n"); myfile.flush()
+    myerrorfile.write(str(totalerr)+"\n"); myerrorfile.flush()
 
 
-myfile.close()
+myerrorfile.close()
 
 

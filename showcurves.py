@@ -29,7 +29,7 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
 
 
 plt.clf()
-filestrs = glob.glob('errs*orth*SEED0.txt')
+filestrs = glob.glob('errs*orth*__*SEED0.txt')
 colorz = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 #filestrs = glob.glob('errs*SEED0.txt')
 for (numtype, fs) in enumerate(filestrs):
@@ -37,7 +37,7 @@ for (numtype, fs) in enumerate(filestrs):
     errs=[]
     minlen = 999999
     for f in filez:
-        err = np.loadtxt(f)[::10]
+        err = np.loadtxt(f)#[::10]
         if err.size < minlen:
             minlen = err.size
         errs.append(np.loadtxt(f))
@@ -45,7 +45,7 @@ for (numtype, fs) in enumerate(filestrs):
     #meanerr= np.mean(np.vstack([x[:minlen] for x in errs]), axis=0)
     #plt.plot(meanerr, label=fs, lw=1)
     for curve in errs:
-        plt.plot(savitzky_golay(curve, 31, 3), colorz[numtype])
+        plt.plot(savitzky_golay(curve, 51, 3), colorz[numtype], lw=1)
 
 plt.show()
 
