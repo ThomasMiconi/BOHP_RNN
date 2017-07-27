@@ -1,17 +1,24 @@
 import numpy as np
 import sys
+import cPickle as pickle
 
 import rnnbohp
 from rnnbohp import runNetwork
 
 
 
-NBNEUR = 32  # Note: Apparently, pattern size must be a multiple of 4 for orthogonalizing to work...
-ETA = .96
-EPSILON = .001
+NBNEUR = 24 #32  # Note: Apparently, pattern size must be a multiple of 4 for orthogonalizing to work...
+ETA = .95
 RNGSEED = 0
 PLASTICITY = 1
 LEARNINGRATE= .003
+ADAM = True
+BETA1 = .9; BETA2 = .999; 
+#ALPHA = .001
+ALPHA = .0003
+#ALPHA = .0001
+WPEN1 = 0.0 #3e-4  # L1 penalty. Very bad, don't use!
+
 arguments = sys.argv[1:]
 numarg = 0
 while numarg < len(arguments):
@@ -21,6 +28,12 @@ while numarg < len(arguments):
         ALPHA= float(arguments[numarg+1])
     if arguments[numarg] == 'LEARNINGRATE':
         LEARNINGRATE = float(arguments[numarg+1])
+    if arguments[numarg] == 'ALPHA':
+        ALPHA= float(arguments[numarg+1])
+    if arguments[numarg] == 'ETA':
+        ETA= float(arguments[numarg+1])
+    if arguments[numarg] == 'WPEN1':
+        WPEN1= float(arguments[numarg+1])
     if arguments[numarg] == 'RNGSEED':
         RNGSEED = int(arguments[numarg+1])
     numarg += 2
@@ -52,24 +65,20 @@ finalys = []
 
 
 PATTERNSIZE = NBNEUR - 4
-NBPRESCYCLES = 3
+NBPRESCYCLES = 2
 PRESTIME = 6
-PRESTIMETEST = 4
+PRESTIMETEST = 6
 INTERPRESDELAY = 4
 TESTTIME = 2
-NBPATTERNS = 3
+NBPATTERNS = 2
 #NBSTEPS = (PRESTIME + INTERPRESDELAY) * NBPATTERNS + INTERPRESDELAY + PRESTIME
 NBSTEPS = NBPRESCYCLES * ((PRESTIME + INTERPRESDELAY) * NBPATTERNS) +  PRESTIMETEST
 PROBADEGRADE = .5
 
-ADAM = True
-BETA1 = .9; BETA2 = .999; 
-#ALPHA = .001
-ALPHA = .0003
-#ALPHA = .0001
+
 
 np.set_printoptions(precision=3)
-SUFFIX = "stronginputs_multiplepres_orthogpatterns_adam_NBNEUR"+str(NBNEUR)+"_PATTERNSIZE"+str(PATTERNSIZE)+"__ALPHA"+str(ALPHA)+"_NBPATTERNS"+str(NBPATTERNS)+"_LEARNINGRATE"+str(LEARNINGRATE)+"_PLASTICITY"+str(PLASTICITY)+"_RNGSEED"+str(RNGSEED)
+SUFFIX = "l1norm_stronginputs_multiplepres_orthogpatterns_adam_ETA"+str(ETA)+"_WPEN1"+str(WPEN1)+"_NBNEUR"+str(NBNEUR)+"_PATTERNSIZE"+str(PATTERNSIZE)+"__ALPHA"+str(ALPHA)+"_NBPATTERNS"+str(NBPATTERNS)+"_LEARNINGRATE"+str(LEARNINGRATE)+"_PLASTICITY"+str(PLASTICITY)+"_RNGSEED"+str(RNGSEED)
 
 myerrorfile = open("errs_"+SUFFIX+".txt", "w") 
 
@@ -151,9 +160,15 @@ for numstep in range(10000):
         alpha -= np.clip(LEARNINGRATE * sum(dalphas) / TESTTIME, -3e-4, 3e-4)
         print "Clippable ws:", np.sum(np.abs(LEARNINGRATE * sum(dws) ) / TESTTIME > 3e-4), " out of ", sum(dws).size
 
+
+    alpha -= WPEN1 * np.sign(alpha) 
+    w -= WPEN1 * np.sign(w) 
+    np.fill_diagonal(alpha, 0)  # No platic autapses
+
+
     if (numstep+1) % 10 == 0:
         params = {}
-        params{'w'} = w; params{'alpha'} = alpha; params{'errs'} = listerrs; params{'inputs'} = listinputs; params{'testpatterns'} = listtestpatterns
+        params['w'] = w; params['alpha'] = alpha; params['errs'] = listerrs; params['inputs'] = listinputs; params['testpatterns'] = listtestpatterns
         pickle.dump(params, open("results_"+SUFFIX+".pkl", "wb"))
     print "last PRESTIME ys[:PATTERNSIZE]:", [x[:PATTERNSIZE] for x in ys[-PRESTIME:]]
     print "test pattern:", testpattern
@@ -164,7 +179,6 @@ for numstep in range(10000):
     listerrs.append(totalerr)
     print "Err:" , totalerr
     myerrorfile.write(str(totalerr)+"\n"); myerrorfile.flush()
-
 
 myerrorfile.close()
 

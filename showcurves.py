@@ -29,7 +29,8 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
 
 
 plt.clf()
-filestrs = glob.glob('errs*orth*__*SEED0.txt')
+#filestrs = glob.glob('errs*orth*__*SEED0.txt')
+filestrs = glob.glob('errs*l1n*__*SEED0.txt')
 colorz = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 #filestrs = glob.glob('errs*SEED0.txt')
 for (numtype, fs) in enumerate(filestrs):
