@@ -7,8 +7,9 @@ from rnnbohp import runNetwork
 
 
 
-NBNEUR = 24 #32  # Note: Apparently, pattern size must be a multiple of 4 for orthogonalizing to work...
-ETA = .95
+NBNEUR = 29 #32  
+PATTERNSIZE = NBNEUR - 1 # Note: Apparently, pattern size must be a multiple of 4 for orthogonalization to work...
+ETA = .99
 RNGSEED = 0
 PLASTICITY = 1
 LEARNINGRATE= .003
@@ -64,13 +65,12 @@ finalys = []
 
 
 
-PATTERNSIZE = NBNEUR - 4
 NBPRESCYCLES = 2
 PRESTIME = 6
 PRESTIMETEST = 6
 INTERPRESDELAY = 4
-TESTTIME = 2
-NBPATTERNS = 2
+TESTTIME = 1
+NBPATTERNS = 3
 #NBSTEPS = (PRESTIME + INTERPRESDELAY) * NBPATTERNS + INTERPRESDELAY + PRESTIME
 NBSTEPS = NBPRESCYCLES * ((PRESTIME + INTERPRESDELAY) * NBPATTERNS) +  PRESTIMETEST
 PROBADEGRADE = .5
@@ -78,13 +78,13 @@ PROBADEGRADE = .5
 
 
 np.set_printoptions(precision=3)
-SUFFIX = "l1norm_stronginputs_multiplepres_orthogpatterns_adam_ETA"+str(ETA)+"_WPEN1"+str(WPEN1)+"_NBNEUR"+str(NBNEUR)+"_PATTERNSIZE"+str(PATTERNSIZE)+"__ALPHA"+str(ALPHA)+"_NBPATTERNS"+str(NBPATTERNS)+"_LEARNINGRATE"+str(LEARNINGRATE)+"_PLASTICITY"+str(PLASTICITY)+"_RNGSEED"+str(RNGSEED)
+SUFFIX = "fullpattern_stronginputs_multiplepres_orthogpatterns_adam_ETA"+str(ETA)+"_TESTTIME"+str(TESTTIME)+"_NBNEUR"+str(NBNEUR)+"_PATTERNSIZE"+str(PATTERNSIZE)+"__ALPHA"+str(ALPHA)+"_NBPATTERNS"+str(NBPATTERNS)+"_LEARNINGRATE"+str(LEARNINGRATE)+"_PLASTICITY"+str(PLASTICITY)+"_RNGSEED"+str(RNGSEED)
 
 myerrorfile = open("errs_"+SUFFIX+".txt", "w") 
 
 print "Starting - "
 print "Learning rate:", str(LEARNINGRATE), " RNGSEED:", str(RNGSEED), ", PLASTICITY:", str(PLASTICITY)
-listerrs=[]; listtestpatterns=[]; listinputs=[]
+listerrs=[]; listtestpatterns=[]; listinputs=[]; listpatterns=[]
 for numstep in range(10000):
     print numstep
     
@@ -103,6 +103,7 @@ for numstep in range(10000):
             sumdotsp = sum(np.abs([p.dot(pprevious) for pprevious in patterns]))
         patterns.append(p)
     print "patterns generated!"
+    listpatterns.append(patterns)
 
 
     # Presentation of the patterns
@@ -168,13 +169,13 @@ for numstep in range(10000):
 
     if (numstep+1) % 10 == 0:
         params = {}
-        params['w'] = w; params['alpha'] = alpha; params['errs'] = listerrs; params['inputs'] = listinputs; params['testpatterns'] = listtestpatterns
+        params['w'] = w; params['alpha'] = alpha; params['errs'] = listerrs; params['testpatterns'] = listtestpatterns; params['patterns'] = listpatterns
         pickle.dump(params, open("results_"+SUFFIX+".pkl", "wb"))
     print "last PRESTIME ys[:PATTERNSIZE]:", [x[:PATTERNSIZE] for x in ys[-PRESTIME:]]
     print "test pattern:", testpattern
     #print "Inputs: ", inputs[:INPUTLENGTH]
     totalerr = np.sum(np.abs(errs))
-    listinputs.append(inputs)
+    #listinputs.append(inputs) # Too big!
     listtestpatterns.append(testpattern)
     listerrs.append(totalerr)
     print "Err:" , totalerr
