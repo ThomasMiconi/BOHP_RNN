@@ -1,6 +1,31 @@
+#Backpropagation of Hebbian plasticity for recurrent neural networks
 import numpy as np
 
 def runNetwork(w, alpha, ETA, NBSTEPS, inputs=[], yinit=[]):
+    """ Run a recurrent network with plastic Hebbian connections and compute the gradients 
+
+    Runs a network specified by w, alpha and ETA for NBSTEPS, with input vectors stored in inputs, starting from initial state yinit.
+
+    Arguments:   
+        w: The matrix of fixed (baseline) weights. Must be square.
+        alpha: The matrix of plasticity coefficients. Must have the same shape as w.
+        ETA: The time constant of plasticity (essentially, the "learning rate" of plastic connections)
+        NBSTEPS: The number of time steps for which to run the network.
+        inputs: The list of input vectors to feed the network. Must have length NBSTEPS.
+        yinit: The initial state of the network.
+
+    Returns:
+        ys: The list of neuron output vectors. Has length NBSTEPS.
+        xs: The list of neuron excitation vectors (i.e. neural activation before the tanh function). Has length NBSTEPS.
+        dykdwbas: The gradients of neural outputs over fixed (baseline) weights.
+            A list of NBSTEPS 3D matrices, each of which contains the gradients of the
+            output of each neuron at this time over the fixed (baseline) weight of each
+            connection. Has length NBSTEPS. Each element is a 3D matrix (output neuron x
+            connection target x connection source).
+        dykdalphabas : Same, but for plasticity coefficients alpha. 
+    """
+        
+
     NBNEUR = w.shape[0]
     INPUTSIZE = 0
     if (len(inputs) > 0):
@@ -25,6 +50,8 @@ def runNetwork(w, alpha, ETA, NBSTEPS, inputs=[], yinit=[]):
     dykdalphabaprev = dykdalphaba.copy()
 
     for numstep in range(NBSTEPS): 
+
+        # Run the network and compute the gradients. 
 
         # Note the time conventions: hebb(t) is an input to y(t) (so it is computed beore y(t) for the same timestep), and y(t) is an input to hebb(t+1)
         
