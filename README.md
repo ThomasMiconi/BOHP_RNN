@@ -66,10 +66,10 @@ between two presentations and before the final test pattern.
 
 The code mainly contains two elements:
 
-    - `rnnbohp.py`: the module that implements BOHP. It contains only one
+    * `rnnbohp.py`: the module that implements BOHP. It contains only one
     function, `runNetwork`, which  runs the network and computes the gradients.
 
-    - `net.py`: the actual application, which trains a network to behave as an
+    * `net.py`: the actual application, which trains a network to behave as an
     auto-associative memory, using the `runNetwork` function in `rnnbohp.py`
 
 `runNetwork` taks as arguments the current parameters of the network (the fixed
