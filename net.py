@@ -11,7 +11,7 @@ from rnnbohp import runNetwork # This function runs the network and computes the
 # Parameters. Some of them are modifiable from the command line.
 NBNEUR = 29   
 PATTERNSIZE = NBNEUR - 1 # Note: Apparently, pattern size must be a multiple of 4 for orthogonalization to work...
-ETA = .99
+ETA = .99   # The "learning rate" of plastic connections
 RNGSEED = 0
 PLASTICITY = 1
 LEARNINGRATE= .003
@@ -101,7 +101,7 @@ for numstep in range(10000):
             sumdotsp = sum(np.abs([p.dot(pprevious) for pprevious in patterns]))
         patterns.append(p)
     print "patterns generated!"
-    # Now patterns contains the NBPATTERNS patterns to be memorized in this episode
+    # Now 'patterns' contains the NBPATTERNS patterns to be memorized in this episode
     listpatterns.append(patterns)
 
 
@@ -117,7 +117,7 @@ for numstep in range(10000):
                 numi =nc * (NBPATTERNS * (PRESTIME+INTERPRESDELAY)) + ii * (PRESTIME+INTERPRESDELAY) + nn 
                 inputs[numi][:PATTERNSIZE] = patterns[ii][:]
 
-    # Creating the test patterns, partially zero'ed out, that the network will have to complete
+    # Creating the test pattern, partially zero'ed out, that the network will have to complete
     numtestpattern = np.random.randint(NBPATTERNS)
     testpattern = patterns[numtestpattern].copy()
     preservedbits = np.ones(PATTERNSIZE); preservedbits[:int(PROBADEGRADE * PATTERNSIZE)] = 0; np.random.shuffle(preservedbits)

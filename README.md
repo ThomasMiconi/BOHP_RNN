@@ -23,12 +23,13 @@ exposed to a small part of that pattern.
 
 ### The bad news
 
-The algorithm we use for gradient computation is largely similar to Real Time
-Recurrent Learning (RTRL), as well as a related algorithm by J. Schmidhuber.
-This algorithm has a major drawback: its spatial complexity is *o(n<sup>4</sup>)* in the number of
-neurons (because it needs to maintain one quantity for each pair of
-connections). This makes it impractical for any large networks, and slow even
-for the small ones that we use here.
+The algorithm we use for gradient computation is similar to Real Time
+Recurrent Learning (RTRL), as well as a [related
+algorithm](https://link.springer.com/chapter/10.1007/978-1-4471-2063-6_110)  by
+J. Schmidhuber.  This algorithm has a major drawback: its spatial complexity is
+*o(N<sup>4</sup>)* in the number of neurons *N* (because it needs to maintain one
+quantity for each pair of connections). This makes it impractical for any large
+network, and slow even for the small ones that we use here.
 
 This problem can be addressed by switching to an algorithm based on
 backpropagation through time (BPTT); however, the mathematics are somewhat
@@ -40,13 +41,14 @@ weights. We intend to explore this direction in  future work.
 
 The program trains a network to become an auto-associative memory. During each
 "episode" (or "lifetime"), the network is exposed to three randomly chosen
-*patterns* (vectors of plus and minus ones of the same size as the network).
-Pattern presentation occurs by feeding each value in the pattern as an input to
-the corresponding neuron in the network. Each presentation lasts 6 time steps,
-and there are 4 time steps with zero input after each presentation.  Then, one
-of the three patterns is "degraded" (half of its bits are zero'ed out) and
-presented to the network.  The network must reproduce the full pattern in its
-output, completing the zero'ed out bits with the appropriate value.
+*patterns* (vectors of *N* values, each of which is either +1 ot  -1, where *N*
+is the number of neurons in the network).  Pattern presentation occurs by
+feeding each value in the pattern as an input to the corresponding neuron in
+the network. Each presentation lasts 6 time steps, and there are 4 time steps
+with zero input after each presentation.  Finally, we randomly choose one of the three patterns 
+"degrade" it (half of its bits are zero'ed out), and present it to the network.
+The network must reproduce the full pattern in its output, completing the
+zero'ed out bits with the appropriate value.
 
 Errors are computed only on the last time step of the episode. For each neuron
 the error is the square of the difference between the neuron's output and the
@@ -58,8 +60,8 @@ After training, the final networks look much like a Hopfield network, with
 twists. All neurons have positive plastic connections to each other, with
 essentially zero fixed (baseline) components. This allows them to build the
 necessary connectivity to store the patterns presented duringeach episode.
-However, they also have negative self-connections, allowing them to relax
-between two presentations and before the final test pattern.
+However, they also have *negative* fixed-weight self-connections, allowing the
+neurons to relax between successive pattern presentations.
 
 
 ### The code
@@ -74,12 +76,13 @@ The code mainly contains two elements:
 baseline weights and plasticity coefficients, time constant of plasticity) and
 the list of input vectors to be fed to the network. It runs the network,
 computes the outputs, and computes the gradient of the output of each neuron, at
-each time step, over the calue of each connection parameter.
+each time step, over the value of each connection parameter.
 
 We tried to comment the code as much as possible. The application code in
 `net.py` is relatively straightforward. The actual BOHP code in `rnnbohp.py` is
-necessarily rather complex, being essentially a transcription of differential
+somewhat terse, being essentially a transcription of differential
 equations into Numpy functions. Hopefully comments should help.  We are
 currently working on a paper laying out the equations and their derivation,
 which should clarify the process.
+
 
