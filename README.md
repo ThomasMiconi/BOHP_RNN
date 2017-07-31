@@ -64,6 +64,11 @@ However, they also have *negative* fixed-weight self-connections, allowing the
 neurons to relax between successive pattern presentations.
 
 
+### The equations
+
+Equations for the gradients are provided in  `latex/equations.pdf`.
+
+
 ### The code
 
 The code mainly contains two elements:
@@ -81,8 +86,5 @@ each time step, over the value of each connection parameter.
 We tried to comment the code as much as possible. The application code in
 `net.py` is relatively straightforward. The actual BOHP code in `rnnbohp.py` is
 somewhat terse, being essentially a transcription of differential
-equations into Numpy functions. Hopefully comments should help.  We are
-currently working on a paper laying out the equations and their derivation,
-which should clarify the process.
-
+equations into Numpy functions. Hopefully comments should help. Be sure to consult the original equations in `latex/equations.pdf`.
 

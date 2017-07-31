@@ -1,0 +1,67 @@
+\documentclass{report}
+\usepackage{amsmath}
+\usepackage{breqn}
+
+\begin{document}
+
+\subsection*{Notation}
+
+\begin{itemize}
+
+\item $y(t)$ is the output of the neuron.
+
+\item $x(t)$ is the total excitation of the neuron (that is, the weighted sum of inputs by fixed and plastic weights), before the $\tanh$ nonlinearity ($y(t)=\tanh(x(t))$).
+
+\item $w_{b,a}$ is the fixed/baseline weight of the connection from neuron $a$ to neuron $b$. 
+
+\item $alpha_{b,a}$ is the plastic weight (or plasticity coefficient) of the connection from neuron $a$ to neuron $b$. 
+
+\item $Hebb_{k,j}(t)$ is the Hebbian trace from neuron $j$ to neuron $k$.
+
+\end{itemize}
+
+Note the time conventions: At any time step $t$, $Hebb_{k,j}(t)$ is an input to $y_k(t)$, so  $Hebb_{k,j}(t)$ is computed before $y_k(t)$ for any given time step $t$. Meanwhile, $y_j(t)$ is an input to the computation of $Hebb_{k,j}(t+1)$.
+
+Note that the following derivatives are all functions of each other, from one time step to the next.
+
+
+\subsection*{Equations}
+
+\begin{itemize}
+
+\item Derivative of $x_k(t)$ over $w_{b,a}$:
+
+\begin{dmath*}
+\frac{dx_k(t)}{dw_{b,a}} = \sum_{j=1}^{N} \left \{ w_{k,j} \frac{dy_j(t-1)}{dw_{b,a}} \right \} + \delta_{b=k}y_a(t-1) + \sum_{j=1}^{N} \alpha_{k,j} \left \{ Hebb_{k,j}(t)\frac{dy_j(t-1)}{dw_{b,a}} + y_j(t-1) \frac{dHebb_{k,j}(t)}{dw_{b,a}} \right \}
+\end{dmath*}
+
+
+\item Derivative of $x_k(t)$ over $\alpha_{b,a}$:
+
+
+\begin{dmath*}
+\frac{dx_k(t)}{d\alpha_{b,a}} = \sum_{j=1}^{N} \left \{ w_{k,j} \frac{dy_j(t-1)}{d\alpha_{b,a}} \right \} + \sum_{j=1}^{N} \alpha_{k,j} \left \{ Hebb_{k,j}(t)\frac{dy_j(t-1)}{d\alpha_{b,a}} + y_j(t-1) \frac{dHebb_{k,j}(t)}{d\alpha_{b,a}} \right \} + \delta_{b=k}Hebb_{b,a}(t)y_a(t-1)) 
+\end{dmath*}
+
+
+
+\item Derivative of $Hebb_{k,j}(t)$ over $\alpha_{b,a}$
+
+\begin{dmath*}
+\frac{dHebb_{k,j}(t)}{d\alpha_{b,a}} = \eta \frac{dHebb_{k,j}(t-1)}{d\alpha_{b,a}}  + (1-\eta) \left \{ \frac{dy_k(t-1)}{d\alpha_{b,a}}  y_j(t-2)+ y_k(t-1) \frac{dy_{j}(t-2)}{d\alpha_{b,a}} \right \}  
+\end{dmath*}
+
+
+\item Derivative of $Hebb_{k,j}(t)$ over $w_{b,a}$
+
+\begin{dmath*}
+\frac{dHebb_{k,j}(t)}{dw_{b,a}} = \eta \frac{dHebb_{k,j}(t-1)}{dw_{b,a}}  + (1-\eta) \left \{ \frac{dy_k(t-1)}{dw_{b,a}}  y_j(t-2)+ y_k(t-1) \frac{dy_{j}(t-2)}{dw_{b,a}} \right \} 
+\end{dmath*}
+
+\item Nonlinearity ($y = \tanh(x)$): derivative of $y_k$ over any quantity $\xi$, as a function of $y_k$ and the derivative of $x_k$ over this same quantity $\xi$:
+
+\[ \frac{dy_{k}(t)}{d\xi } = (1-y_k(t)^2)\frac{dx_{k}(t)}{d\xi } \]
+
+\end{itemize}
+
+\end{document}
