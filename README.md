@@ -1,3 +1,11 @@
+## This code is obsolete and superseded by https://github.com/uber-research/differentiable-plasticity
+
+This is an early version of Differentiable Plasticity applied to recurrent networks. Expressions for the gradient were derived by hand - no autodiff. These expressions end up looking like Real-Time Recurrent Learning. As a result, we don't need backpropagation through time, but updates are extremely slow and require a lot of memory.
+
+This code is kept here solely for historical purposes. See also https://github.com/ThomasMiconi/LearningToLearnBOHP for the original (non-recurrent) version of this work, presented at the NIPS 2016 Continual Learning workshop.
+
+-----
+
 ## Backpropagation of Hebbian plasticity for recurrent networks
 
 Backpropagation of Hebbian plasticity (BOHP) is an extension of the
